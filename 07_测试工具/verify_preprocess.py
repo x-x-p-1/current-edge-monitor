@@ -1,8 +1,9 @@
-"""预处理 v2 验证：三相 (N,3)、流式窗口、VFD 低频/高频保留（运行：python 06_测试与验证/verify_preprocess_v2.py）"""
+"""预处理 v2 验证：三相 (N,3)、流式窗口、VFD 低频/高频保留（运行：python 07_测试工具/verify_preprocess.py）"""
 import sys, os, importlib
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.stdout.reconfigure(errors="replace")  # 兼容 Windows GBK 控制台（emoji→?）
 _pre = importlib.import_module("01_信号预处理.preprocess")
 CurrentPreprocessor = _pre.CurrentPreprocessor
 PreprocessConfig = _pre.PreprocessConfig

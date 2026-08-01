@@ -19,17 +19,20 @@
 | 文件 | 功能 |
 |------|------|
 | `current_simulator.py` | 三相电流原始数据仿真器（正常 + 8 类故障注入） |
-| `run_m0_simulation.py` | **M0 端到端仿真**：仿真 → 预处理 → 快/慢特征 → 状态机 → 事件，出 PNG + UTF-8 报告 |
-| `verify.py` | 仿真器数值自检（RMS/相位/堵转/边带） |
+
+> 仿真器的**自检 / M0 仿真 / 看板生成**等工具已移至 `07_测试工具/`（见该模块 README）。
 
 ## 快速开始
 
 ```bash
-# 仿真器数值自检
-python 00_数据生成与仿真/verify.py
+# 仿真器数值自检（工具已移至 07_测试工具）
+python 07_测试工具/verify_simulator.py
 
-# M0 端到端仿真（30s 三相变频电机工况，输出 sim/m0_simulation.png + sim/m0_report_utf8.txt）
-python 00_数据生成与仿真/run_m0_simulation.py
+# M0 端到端仿真
+python 07_测试工具/run_m0_simulation.py
+
+# 实时看板
+python 07_测试工具/export_dashboard.py
 ```
 
 ```python

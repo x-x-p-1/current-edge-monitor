@@ -22,8 +22,11 @@ from collections import Counter
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.stdout.reconfigure(errors="replace")  # 兼容 Windows GBK 控制台（emoji→?）
+
+_ROOT = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, os.path.join(_ROOT, "00_数据生成与仿真"))
 
 _sim = importlib.import_module("current_simulator")
 generate_dataset, Fault = _sim.generate_dataset, _sim.Fault

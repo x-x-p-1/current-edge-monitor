@@ -1,6 +1,7 @@
-"""05 推理后端抽象 v2 验证（运行：python 06_测试与验证/verify_backend_v2.py）"""
+"""05 推理后端抽象 v2 验证（运行：python 07_测试工具/verify_backend.py）"""
 import sys, os, importlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.stdout.reconfigure(errors="replace")  # 兼容 Windows GBK 控制台（emoji→?）
 _dep = importlib.import_module("05_模型导出与部署")
 
 print("=== 后端工厂 ===")

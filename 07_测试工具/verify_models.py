@@ -1,8 +1,9 @@
-"""检测模型 v2 验证：过程状态识别（运行：python 06_测试与验证/verify_models_v2.py）"""
+"""检测模型 v2 验证：过程状态识别（运行：python 07_测试工具/verify_models.py）"""
 import sys, os, importlib
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.stdout.reconfigure(errors="replace")  # 兼容 Windows GBK 控制台（emoji→?）
 _sim = importlib.import_module("00_数据生成与仿真.current_simulator")
 generate_dataset = _sim.generate_dataset
 Fault = _sim.Fault

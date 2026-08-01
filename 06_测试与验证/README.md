@@ -25,25 +25,10 @@
 
 ---
 
-## v2 自检脚本（非 unittest，直接运行）
+## 相关工具
 
-各层 v2 新功能的功能验证脚本，运行时打印关键数值并断言：
-
-| 脚本 | 验证内容 |
-|------|----------|
-| `verify_preprocess_v2.py` | 三相 (N,3)、低速/高频频带保留、流式出帧 |
-| `verify_features_v2.py` | 快/慢路径特征、三相对称分量、MCSA 边带 |
-| `verify_models_v2.py` | 过程状态机：负载周期 / 堵转 / 停机 |
-| `verify_backend_v2.py` | 05 推理后端工厂与错误处理 |
-
-```bash
-python 06_测试与验证/verify_preprocess_v2.py
-python 06_测试与验证/verify_features_v2.py
-python 06_测试与验证/verify_models_v2.py
-python 06_测试与验证/verify_backend_v2.py
-```
-
----
+各层 v2 的功能验证脚本、M0 仿真、实时看板已移至 **`07_测试工具/`**（见该模块 README），
+本目录只保留正式回归套件。
 
 ## 运行测试
 

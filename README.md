@@ -79,9 +79,7 @@
 算法框架/
 ├── README.md                    # 本文件（设计理念 + 架构）
 ├── 00_数据生成与仿真/           # 三相电流仿真器（v2 新增）
-│   ├── current_simulator.py     # 仿真器：正常 + 8 类故障注入
-│   ├── run_m0_simulation.py     # M0 端到端仿真（生成 PNG + 报告）
-│   └── verify.py                # 仿真器数值自检
+│   └── current_simulator.py     # 仿真器：正常 + 8 类故障注入
 ├── 01_信号预处理/               # 原始波形 → 干净信号（三相/流式）
 │   ├── preprocess.py            # 预处理主流水线（批 + 流式）
 │   ├── filters.py               # 数字滤波器（三相 (N,C) 支持）
@@ -108,7 +106,8 @@
 │   ├── export_onnx.py           # PyTorch → ONNX
 │   ├── export_rknn.py           # ONNX → RKNN
 │   └── rknn_inference.py        # RKNN 推理运行时
-├── 06_测试与验证/               # 单元测试 + v2 自检脚本
+├── 06_测试与验证/               # 正式回归套件（pytest，57/57）
+├── 07_测试工具/                 # 开发/验证工具：自检脚本 + M0 仿真 + 实时看板
 ├── config/
 │   └── config.yaml              # 全局配置参数（数据契约驱动）
 ├── docs/
@@ -125,15 +124,14 @@ pip install -r requirements.txt
 # 全量测试（当前 57/57 通过）
 python -m pytest 06_测试与验证/ -q
 
-# M0 端到端仿真（数据发生器 → 预处理 → 特征 → 状态机 → 事件）
-python 00_数据生成与仿真/run_m0_simulation.py
-
-# 数据发生器 / 预处理 / 特征 / 模型 自检脚本
-python 00_数据生成与仿真/verify.py
-python 06_测试与验证/verify_preprocess_v2.py
-python 06_测试与验证/verify_features_v2.py
-python 06_测试与验证/verify_models_v2.py
-python 06_测试与验证/verify_backend_v2.py
+# M0 端到端仿真 / 实时看板 / 各层自检（工具集中在 07_测试工具）
+python 07_测试工具/run_m0_simulation.py
+python 07_测试工具/export_dashboard.py
+python 07_测试工具/verify_simulator.py
+python 07_测试工具/verify_preprocess.py
+python 07_测试工具/verify_features.py
+python 07_测试工具/verify_models.py
+python 07_测试工具/verify_backend.py
 ```
 
 ## 测试状态（57/57 全绿）
