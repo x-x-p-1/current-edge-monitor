@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# 生成/仿真产物（可再生，不入库）
+sim/
+
+# 模型文件（由训练/导出生成）
+models/
+*.onnx
+*.rknn
+*.pth
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+.vscode/

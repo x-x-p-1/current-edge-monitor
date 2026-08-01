@@ -1,0 +1,21 @@
+numpy>=1.24.0
+scipy>=1.10.0
+PyYAML>=6.0
+
+# 信号处理
+pywt>=1.4.0                # PyWavelets 小波变换
+
+# 机器学习 & 深度学习 (训练端)
+torch>=2.0.0
+torchvision>=0.15.0
+scikit-learn>=1.3.0
+
+# RKNN 部署 (边缘端 — 在 RK3588 上安装)
+# rknn-toolkit2>=1.5.0     # RKNN 转换工具 (PC端)
+# rknn-toolkit2-lite       # RKNN Lite 推理运行时 (边缘端)
+
+# 可视化 (可选)
+matplotlib>=3.7.0
+
+# 测试
+pytest>=7.4.0

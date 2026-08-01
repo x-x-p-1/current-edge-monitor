@@ -1,0 +1,148 @@
+# 全局配置文件
+# 毫秒级电流智能检测边缘设备 — 算法参数配置
+
+# ============================================================
+# 采样与窗口配置
+# ============================================================
+sampling:
+  rate: 16000              # 采样率 (Hz)/通道，对齐数据契约；三相 16kSPS
+  adc_bits: 24             # ADC 分辨率 (bits)，ΔΣ 同步采样
+  channels: 3              # 通道数（三相 A/B/C，同时采样）
+  adc_vref: 3.3            # ADC 参考电压 (V)
+  current_scale: 1.0       # 电流转换系数 (A/V)，取决于传感器+调理电路
+
+window:
+  size: 256                # 滑动窗口大小 (采样点数)
+  stride: 128              # 窗口步长 (采样点数)，50% 重叠
+  # 窗口时长 = size / rate = 16ms @16kSPS（快路径特征窗口）
+  # 注意：频域/谐波特征需要慢路径长窗（≥1~2 工频周期），见特征提取层
+
+# ============================================================
+# 信号预处理参数
+# ============================================================
+preprocessing:
+  channels: 3              # 处理通道数（三相）
+  dc_removal:
+    enabled: true
+    method: "sliding_mean"  # 滑动均值法去除直流偏置
+    window: 100             # DC估算窗口大小
+  
+  bandpass_filter:
+    enabled: true
+    type: "butterworth"     # 巴特沃斯 IIR
+    order: 4                # 滤波器阶数
+    lowcut: 5.0             # 低频截止 (Hz)：低于 VFD 最低输出频率，勿杀低速基频
+    highcut: 4000.0         # 高频截止 (Hz)：不低于诊断频带上限（MCSA 边带/谐波/包络）
+    # 设计约束：highcut 不得低于诊断频带上限，PWM 纹波由模拟抗混叠处理
+  
+  normalization:
+    enabled: true
+    method: "zscore"        # Z-Score 标准化 (minmax / zscore / rms / peak / none)
+    # Z-Score: (x - μ) / σ，适合深度学习模型
+  
+  alignment:
+    enabled: false          # 是否启用过零相位对齐（默认关，电弧/单相分析用）
+    method: "zero_crossing" # 过零点检测
+    tolerance: 0.02         # 过零容差 (归一化幅值)
+
+# ============================================================
+# 特征提取参数
+# ============================================================
+features:
+  time_domain:
+    enabled:
+      - rms                 # 有效值
+      - peak_factor         # 峰值因子 (Crest Factor)
+      - form_factor         # 波形因子
+      - kurtosis            # 峭度
+      - skewness            # 偏度
+      - zero_crossing_rate  # 过零率
+      - differential_stats  # 差分统计 (ΔI 均值/方差)
+  
+  frequency_domain:
+    enabled: true
+    fft_size: 256           # FFT 点数（与窗口大小一致为佳）
+    harmonics: [1, 3, 5, 7, 9, 11]  # 需要提取的谐波次数 (1=基波)
+    thd_enabled: true       # 总谐波失真
+    high_freq_band: [2000, 10000]  # 高频能量比计算频段 (Hz)
+    spectral_stats: true    # 频谱质心、带宽等统计量
+  
+  time_frequency:
+    enabled: false          # 时频域分析（计算量较大，按需开启）
+    wavelet: "db4"          # 小波基 (db4/sym4)
+    dwt_levels: 4           # 小波分解层数
+    stft_enabled: false     # 短时傅里叶变换
+
+  statistical:
+    enabled:
+      - boxplot             # 箱线图五数概括 (min/q25/q50/q75/max)
+      - iqr                 # 四分位距
+      - outlier_count       # 离群点计数
+
+# ============================================================
+# 检测模型参数
+# ============================================================
+models:
+  arc_detection:            # 故障电弧检测
+    enabled: true
+    type: "1d_cnn"          # 1d_cnn / cnn_lstm / transformer
+    model_path: "models/arc_cnn_int8.rknn"
+    threshold: 0.85         # 判定阈值 (0~1)
+    input_length: 256       # 模型输入长度
+  
+  load_identification:      # 负载类型识别
+    enabled: false          # 按需开启
+    type: "1d_resnet"
+    model_path: "models/load_cls_int8.rknn"
+    num_classes: 8          # 负载类别数
+    classes: ["阻性", "感性", "容性", "开关电源", "电机", "变频器", "LED灯", "未知"]
+  
+  anomaly_detection:        # 无监督异常检测
+    enabled: false
+    type: "autoencoder"     # autoencoder / isolation_forest / one_class_svm
+    model_path: "models/anomaly_ae_int8.rknn"
+    threshold: 3.0          # 重构误差倍数阈值
+  
+  power_quality:            # 电能质量分析
+    enabled: true
+    nominal_freq: 50.0      # 标称工频 (Hz)
+    thd_warning: 8.0        # THD 预警阈值 (%)
+    thd_alarm: 15.0         # THD 报警阈值 (%)
+
+# ============================================================
+# 后处理与防抖参数
+# ============================================================
+postprocessing:
+  smoothing:
+    enabled: true
+    method: "moving_average" # 滑动平均平滑
+    window: 5               # 平滑窗口 (推理帧数，≈ 5×2.56ms = 12.8ms)
+  
+  hysteresis_alarm:
+    enabled: true
+    confirm_count: 3        # 连续确认帧数（N/10 报警）
+    release_count: 5        # 连续确认释放帧数
+    # 逻辑: 连续3帧超阈值→报警；连续5帧低于阈值→解除
+  
+  decision_fusion:
+    enabled: true
+    method: "voting"        # voting / weighted / max_confidence
+    weights:                # 各模型权重 (加权投票)
+      arc_detection: 0.5
+      anomaly_detection: 0.3
+      power_quality: 0.2
+
+# ============================================================
+# 边缘端运行时配置
+# ============================================================
+runtime:
+  npu_core_mask: 0          # NPU 核心掩码 (0=自动, 1=core0, 2=core1, 3=core2)
+  cpu_affinity:
+    preprocess: [0, 1]      # A55 小核
+    feature_extract: [4]    # A76 大核
+    inference_ctrl: [5]     # A76 大核
+  log_level: "INFO"         # DEBUG / INFO / WARNING / ERROR
+  data_storage:
+    raw_waveform: false     # 是否存储原始波形 (NVMe)
+    feature_buffer: true    # 是否缓存特征向量 (RAM Disk)
+    event_log: true         # 是否记录事件日志
