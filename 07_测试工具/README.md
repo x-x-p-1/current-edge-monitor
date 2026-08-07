@@ -13,7 +13,10 @@
 ├── verify_models.py          # 过程状态机：负载周期 / 堵转 / 停机
 ├── verify_backend.py         # 05 推理后端工厂与错误处理
 ├── run_m0_simulation.py      # M0 端到端仿真（文本报告 + PNG）
-└── export_dashboard.py       # 生成实时可视化看板 sim/dashboard.html
+├── export_dashboard.py       # 生成实时可视化看板 sim/dashboard.html
+├── plot_5kw_motor.py         # 5kW 电机物理模式静态图 sim/motor_5kw_demo.png
+├── export_5kw_dashboard.py   # 5kW 电机物理模式动态看板 sim/dashboard_5kw.html
+└── export_5kw_live_dashboard.py  # 5kW 交互式故障注入看板 sim/dashboard_5kw_live.html
 ```
 
 ## 运行
@@ -31,6 +34,10 @@ python 07_测试工具/run_m0_simulation.py
 
 # 实时看板 → sim/dashboard.html（浏览器打开，连续循环播放）
 python 07_测试工具/export_dashboard.py
+
+# 5kW 电机物理模式：静态图 + 动态看板（stall / load_step / unbalance）
+python 07_测试工具/plot_5kw_motor.py
+python 07_测试工具/export_5kw_dashboard.py
 ```
 
 ## 与正式测试的分工

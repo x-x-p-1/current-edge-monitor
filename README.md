@@ -80,7 +80,8 @@
 ├── README.md                    # 本文件（设计理念 + 架构）
 ├── TODO.md                      # 主任务清单 / Roadmap（团队共享维护）
 ├── 00_数据生成与仿真/           # 三相电流仿真器（v2 新增）
-│   └── current_simulator.py     # 仿真器：正常 + 8 类故障注入
+│   ├── current_simulator.py     # 仿真器：正常 + 8 类故障注入
+│   └── 仿真器改造问题清单.md     # 仿真器改造需求评审稿（电气工程师确认用）
 ├── 01_信号预处理/               # 原始波形 → 干净信号（三相/流式）
 │   ├── preprocess.py            # 预处理主流水线（批 + 流式）
 │   ├── filters.py               # 数字滤波器（三相 (N,C) 支持）
@@ -134,6 +135,11 @@ python 07_测试工具/verify_preprocess.py
 python 07_测试工具/verify_features.py
 python 07_测试工具/verify_models.py
 python 07_测试工具/verify_backend.py
+
+# 5kW 电机物理模式：静态图 / 动态看板 / 交互式故障注入看板（v0.2）
+python 07_测试工具/plot_5kw_motor.py
+python 07_测试工具/export_5kw_dashboard.py
+python 07_测试工具/export_5kw_live_dashboard.py
 ```
 
 ## 测试状态（57/57 全绿）

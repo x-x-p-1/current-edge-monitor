@@ -51,6 +51,37 @@ sig2, ts2, meta2 = generate_dataset(
 )
 ```
 
+## 5kW 电机物理模式（v0.2 新增）
+
+默认标幺模式之外，可传入 `Motor`（默认 5kW / 380V / 50Hz / 4 极）进入**物理（安培）模式**：
+`load_profile` 第三项解释为**负载转矩（标幺）**，由电机模型换算成真实相电流；
+三个最常见故障按物理量解释。
+
+```python
+from current_simulator import generate_dataset, Fault, Motor
+
+motor = Motor()  # 5kW：额定电流≈10.5A，空载≈3.5A，堵转≈63A
+sig, ts, meta = generate_dataset(
+    duration=10.0, motor=motor,
+    load_profile=[(0.0, 2.0, 0.0), (2.0, 7.0, 1.0), (7.0, 10.0, 1.0)],  # 空载→满载
+    faults=[
+        Fault(kind="load_step", start=2.0, dur=0.3, depth=1.0),   # 突变到满载电流
+        Fault(kind="stall", start=4.0, dur=1.0),                  # 堵转→~63A
+        Fault(kind="unbalance", start=7.0, dur=2.0, depth=0.05),  # 5% 三相不平衡
+    ],
+)
+```
+
+| 故障 | 物理模式语义 | 对应电流 |
+|------|-------------|----------|
+| `stall` | 电流跳到堵转电流（≈ 6×额定） | ~63A |
+| `load_step` | `depth` = 负载转矩(标幺)，跳到对应电流 | 0~满载 ~10.5A |
+| `unbalance` | `depth` = 电流不平衡度(分数)，B降C升 | 如 ±5% |
+
+> 物理模式下 `full_scale` 默认自动按 2×信号峰值设量程（避免整段削波）；
+> 传显式值可模拟真实 ADC 量程/削波。输出 `meta['units']='A (real)'`，并带 `meta['motor']`。
+> 标幺模式（`motor=None`）行为与 v0.1 完全一致，向后兼容（06 回归 57/57）。
+
 ## 支持参数（对齐原始数据契约）
 
 | 参数 | 默认 | 说明 |

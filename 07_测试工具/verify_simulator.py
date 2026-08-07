@@ -1,6 +1,10 @@
 """数据发生器数值验证脚本（运行：python 07_测试工具/verify_simulator.py）"""
 import sys
+import os
 import numpy as np
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "00_数据生成与仿真"))
 from current_simulator import generate_dataset, Fault
 
 sys.stdout.reconfigure(errors="replace")  # 兼容 Windows GBK 控制台（emoji→?）
