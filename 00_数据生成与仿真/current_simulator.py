@@ -125,6 +125,26 @@ class Motor:
         """负载转矩 → 相电流峰值 (√2 × 有效值)。"""
         return np.sqrt(2.0) * self.phase_current_a(torque_pu)
 
+    @property
+    def rated_voltage_phase_v(self) -> float:
+        """额定相电压 (V)：线电压 / √3（380V → ≈220V）。"""
+        return self.rated_voltage_v / np.sqrt(3.0)
+
+    @property
+    def rated_voltage_peak_v(self) -> float:
+        """额定相电压峰值 (V)。"""
+        return np.sqrt(2.0) * self.rated_voltage_phase_v
+
+    def load_power_factor(self, torque_pu: float) -> float:
+        """负载转矩(标幺) → 功率因数 cosφ（空载低≈0.20，满载≈额定 0.83）。
+
+        物理：空载时以励磁无功为主(PF 低)，随负载上升转矩分量增大 PF 升高。
+        （命名避免与字段 self.power_factor=额定 cosφ 冲突）
+        """
+        pf_no_load = 0.20
+        t = float(np.clip(torque_pu, 0.0, 1.0))
+        return float(pf_no_load + (self.power_factor - pf_no_load) * t)
+
 
 # ============================================================
 # 内部工具
@@ -387,6 +407,92 @@ def generate_dataset(
             "stall_current_a": round(motor.stall_current_a, 3),
         }
     return signal_q, timestamps_ns, meta
+
+
+# ============================================================
+# 电流 + 电压 联合生成（交叉验证）
+# ============================================================
+
+def generate_vi_dataset(
+    fs: float = 16000.0,
+    duration: float = 10.0,
+    f1: float = 50.0,
+    motor: Optional[Motor] = None,
+    harmonics: Optional[Dict[int, float]] = None,
+    fsw: float = 8000.0,
+    pwm_depth: float = 0.03,
+    snr_db: float = 60.0,
+    adc_bits: int = 24,
+    full_scale: Optional[float] = None,
+    imbalance: float = 0.0,
+    load_profile: Optional[List[Tuple[float, float, float]]] = None,
+    faults: Optional[List[Fault]] = None,
+    seed: int = 42,
+    voltage_scale: float = 1.0,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+    """生成三相电流 + 对齐的三相电压（电流/电压交叉验证用）。
+
+    物理模型：
+      · 电流与电压同频，相位差 φ = arccos(PF(负载))，电压超前电流（感性负载）
+      · 空载 PF≈0.20（励磁无功为主），满载 PF≈额定 0.83
+      · 电压默认额定 380V（相 220V）；一阶耦合：voltage_scale 同时缩放 V 与 I，
+        使电压跌落时阻抗 Z=V/I 基本不变（供电侧特征）；电机侧故障(堵转等)
+        只改电流 → Z 骤降（电机侧特征）
+
+    Args:
+        同 generate_dataset（motor 必给），另：
+        voltage_scale: 电压幅值系数（1.0 = 额定；0.85 = 15% 电压跌落等供电侧问题）
+
+    Returns:
+        (current, voltage, timestamps_ns, metadata)
+          current: (N,3) 三相电流 (A)
+          voltage: (N,3) 三相相电压 (V)
+          timestamps_ns: (N,) int64
+          metadata: dict
+    """
+    if motor is None:
+        raise ValueError("generate_vi_dataset 需要传入 motor（如 Motor() 5kW）")
+
+    sig, ts, meta = generate_dataset(
+        fs=fs, duration=duration, f1=f1, motor=motor,
+        harmonics=harmonics, fsw=fsw, pwm_depth=pwm_depth,
+        snr_db=snr_db, adc_bits=adc_bits, full_scale=full_scale,
+        imbalance=imbalance, load_profile=load_profile, faults=faults, seed=seed,
+    )
+    n = int(duration * fs)
+    t = _make_t(fs, duration)
+
+    # 负载转矩包络（物理模式：load_profile 第三项 = 转矩标幺，0=空载）
+    if load_profile is None:
+        env = np.ones(n)
+    else:
+        env = np.zeros(n)
+        for t0, t1, a in load_profile:
+            env[int(t0 * fs):int(t1 * fs)] = a
+
+    # 相位差 φ(t) = arccos(PF(torque))，电压超前电流
+    phi = np.arccos(np.clip([motor.load_power_factor(T) for T in env], 1e-6, 1.0))
+    phase_shift = np.array([0.0, -2.0 * np.pi / 3.0, 2.0 * np.pi / 3.0])
+    v_peak = motor.rated_voltage_peak_v * voltage_scale
+
+    voltage = np.zeros((n, 3))
+    for ch, ph in enumerate(phase_shift):
+        voltage[:, ch] = v_peak * np.sin(2.0 * np.pi * f1 * t + ph + phi)
+
+    v_full = full_scale if full_scale is not None else 2.0 * v_peak
+    vq, _ = _quantize(voltage, adc_bits, v_full)
+
+    # 一阶耦合：电压跌落时电流跟随（I ∝ V，固定阻抗），保持 Z≈恒定（供电侧特征）
+    if voltage_scale != 1.0:
+        sig = sig * voltage_scale
+
+    meta["voltage"] = {
+        "rated_line_v": motor.rated_voltage_v,
+        "rated_phase_v": round(motor.rated_voltage_phase_v, 2),
+        "voltage_scale": voltage_scale,
+        "units": "V (phase, real)",
+    }
+    return sig, vq, ts, meta
 
 
 # ============================================================

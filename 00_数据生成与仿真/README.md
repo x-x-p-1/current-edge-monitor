@@ -82,6 +82,30 @@ sig, ts, meta = generate_dataset(
 > 传显式值可模拟真实 ADC 量程/削波。输出 `meta['units']='A (real)'`，并带 `meta['motor']`。
 > 标幺模式（`motor=None`）行为与 v0.1 完全一致，向后兼容（06 回归 57/57）。
 
+## 电流 + 电压联合生成（交叉验证，v0.3 新增）
+
+只测电流难以判断异常是"供电侧先变"还是"电机侧先变"。同时测电压，利用
+**阻抗 Z=V/I 与功率因数 cosφ** 的物理耦合即可区分根因、提早发现问题：
+
+```python
+from current_simulator import generate_vi_dataset, Fault, Motor
+
+cur, vol, ts, meta = generate_vi_dataset(        # (N,3) 电流 + (N,3) 相电压
+    duration=4.0, motor=Motor(), load_profile=[(0.0, 4.0, 1.0)],
+    voltage_scale=0.85,                          # <1 模拟电压跌落（供电侧问题）
+)
+```
+
+| 场景 | 电压 | 电流 | Z=V/I | 判别 |
+|------|------|------|------|------|
+| 正常满载 | 219V | 10.6A | 20.7Ω | 正常 |
+| 堵转（电机侧） | 219V 不变 | 63A 激增 | **骤降 3.5Ω** | 电机/负载侧 |
+| 电压跌落（供电侧） | **186V 跌** | 9.0A 跟随 | 20.7Ω 稳定 | 供电侧 |
+| 电流不平衡 | 219V 平衡 | I不平衡14.8% | — | 电机不对称 |
+
+对应特征模块：`02_特征提取/cross_validate.py`（阻抗 / cosφ / 不平衡 / 判别）；
+演示：`07_测试工具/verify_cross_validate.py`。
+
 ## 支持参数（对齐原始数据契约）
 
 | 参数 | 默认 | 说明 |
