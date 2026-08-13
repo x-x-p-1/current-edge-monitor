@@ -8,6 +8,26 @@
 原始采样(N,/N,3) → 直流偏置去除 → 带通滤波 → 幅值归一化 → [相位对齐] → 干净信号
 ```
 
+## v2.1 变更记录（去直流基波保留修复 —— TODO G 项）
+
+> **背景 bug**：`remove_dc_offset(window=100)` @16k，滑动窗 100 点 ≈ 0.31 工频周期，
+> 会把 50Hz 基波当成 DC 砍掉 **~85%**（实测基波保留仅 15%），MCSA / 状态机基线全部失准。
+
+| 变更 | v2（旧） | v2.1（当前） |
+|------|----------|--------------|
+| 去直流默认方法 | `sliding_mean`，window=100 | **`highpass`（慢基线，一阶高通 fc=0.5Hz）**，基波保留 ~100% |
+| 去直流 API | `remove_dc_offset(data, window)` | `remove_dc_offset(data, method, cutoff_hz, fs)`，`sliding_mean` 保留向后兼容 |
+| 流式滤波 | 每帧独立 `filtfilt`（重叠帧 → 帧边界瞬态 + 状态错位） | **状态延续因果滤波**（`SlowBaselineRemover` + `StreamingBandpass`，IIR `zi` 跨帧延续） |
+| 流式架构 | 每帧重滤波 | **滤波状态只随输入推进，重叠窗口只切帧**（`process_streaming` 重构） |
+
+**为何必须改**（物理依据）：
+- 滑动均值去 DC 的 -3dB 截止 ≈ fs/W；W=100@16k → 160Hz，50Hz 落在过渡带内被大幅衰减。
+- 慢基线（一阶高通 fc=0.5Hz）时间常数 0.32s ≫ 工频周期 20ms → 基波无损、真 DC 漂移被抑制。
+- 流式快路径帧长 256 点 = 16ms ≪ 带通低截止 5Hz 的时间常数 0.2s，每帧独立 filtfilt 必然产生帧边界瞬态；
+  v2.1 用因果 IIR + 状态延续，`process_streaming` 输出与整段一次性因果滤波**逐点一致**（回归用例验证 r>0.999）。
+
+> 若确需 `sliding_mean`：窗口必须 ≥ 数工频周期（@16k/50Hz 至少 320 点 = 1 周期）。
+
 ## v2 变更记录（对齐三相变频电机方向）
 
 | 变更 | v1 | v2 |
@@ -33,10 +53,10 @@
 
 | 文件 | 功能 | 核心算法 |
 |------|------|----------|
-| `filters.py` | 数字滤波器 | 滑动均值去DC、巴特沃斯带通、移动平均、SG滤波、陷波 |
+| `filters.py` | 数字滤波器 | 滑动均值/慢基线去DC、巴特沃斯带通、移动平均、SG滤波、陷波、`SlowBaselineRemover`/`StreamingBandpass`（流式状态延续） |
 | `normalization.py` | 归一化 | Z-Score / MinMax / RMS / Peak 归一化 |
 | `alignment.py` | 相位对齐 | 过零点检测、窗口对齐、整周期提取 |
-| `preprocess.py` | 预处理管线 | 串联上述步骤的 Pipeline 主控 |
+| `preprocess.py` | 预处理管线 | 批处理（去DC→零相位带通）+ 流式（状态延续滤波→切帧）Pipeline 主控 |
 
 ---
 

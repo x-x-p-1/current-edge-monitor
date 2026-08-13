@@ -24,8 +24,11 @@ preprocessing:
   channels: 3              # 处理通道数（三相）
   dc_removal:
     enabled: true
-    method: "sliding_mean"  # 滑动均值法去除直流偏置
-    window: 100             # DC估算窗口大小
+    # v2.1：慢基线（一阶高通）去直流，基波保留 ~100%。
+    # 旧 sliding_mean 法 @16k window=100 会把 50Hz 基波砍掉 ~85%（见 filters.remove_dc_offset）
+    method: "highpass"      # "highpass"/"slow_baseline"（推荐）| "sliding_mean"
+    cutoff_hz: 0.5          # 慢基线高通截止频率 (Hz)，仅 highpass 用
+    window: 100             # DC估算窗口大小（仅 sliding_mean 用，需 ≥ 数工频周期）
   
   bandpass_filter:
     enabled: true

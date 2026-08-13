@@ -19,6 +19,17 @@ bandpass_filter = _filters.bandpass_filter
 butter_bandpass_coefficients = _filters.butter_bandpass_coefficients
 moving_average = _filters.moving_average
 savitzky_golay_smooth = _filters.savitzky_golay_smooth
+SlowBaselineRemover = _filters.SlowBaselineRemover
+StreamingBandpass = _filters.StreamingBandpass
+
+
+def _rms_at_freq(x: np.ndarray, fs: float, f: float) -> float:
+    """整周期窗下单频有效值（抗泄漏，用于基波保留率测量）"""
+    n = len(x)
+    k = round(f * n / fs)
+    if k < 1 or k >= n // 2:
+        return 0.0
+    return np.abs(np.fft.rfft(x)[k]) / n * np.sqrt(2)
 
 _norm = importlib.import_module("01_信号预处理.normalization")
 normalize_signal = _norm.normalize_signal
@@ -76,6 +87,87 @@ class TestFilters(unittest.TestCase):
         smoothed = savitzky_golay_smooth(signal, window_length=5, polyorder=3)
 
         self.assertEqual(len(smoothed), len(signal))
+
+
+class TestDCBaselineV21(unittest.TestCase):
+    """v2.1：慢基线去直流 — 基波保留（修复滑动均值窗砍基波 bug，TODO G 项）"""
+
+    def setUp(self):
+        self.fs = 16000.0
+        self.f1 = 50.0
+        n = int(self.fs * 4.0)
+        t = np.arange(n) / self.fs
+        np.random.seed(0)
+        self.sig = (2.5 + 1.0 * np.sin(2 * np.pi * self.f1 * t)
+                    + 0.2 * np.sin(2 * np.pi * 3 * self.f1 * t)
+                    + 0.01 * np.random.randn(n))
+
+    def _fund_gain(self, sig_out: np.ndarray, ref: np.ndarray) -> float:
+        g_in = _rms_at_freq(ref, self.fs, self.f1)
+        g_out = _rms_at_freq(sig_out, self.fs, self.f1)
+        return g_out / max(g_in, 1e-12)
+
+    def test_sliding_mean_small_window_kills_fundamental(self):
+        """哨兵：@16k window=100 的滑动均值确实会砍基波（bug 复现）"""
+        out = remove_dc_offset(self.sig, window=100)
+        self.assertLess(self._fund_gain(out, self.sig), 0.4)  # 砍掉 >60%
+
+    def test_highpass_preserves_fundamental(self):
+        """慢基线高通去直流保留基波 ~100%，且 DC 被抑制"""
+        out = remove_dc_offset(self.sig, method="highpass", cutoff_hz=0.5, fs=self.fs)
+        self.assertGreater(self._fund_gain(out, self.sig), 0.98)
+        self.assertLess(abs(np.mean(out)), 0.1)
+
+    def test_sliding_mean_full_cycle_preserves(self):
+        """滑动均值窗口 ≥ 1 工频周期时也保留基波（文档要求）"""
+        out = remove_dc_offset(self.sig, window=320)  # 320 点 = 1 周期 @16k/50Hz
+        self.assertGreater(self._fund_gain(out, self.sig), 0.98)
+
+    def test_streaming_pipeline_preserves_fundamental(self):
+        """流式管线（慢基线 + 带通）重建后基波保留 >95%"""
+        cfg = PreprocessConfig(sample_rate=self.fs, channels=1, norm_enabled=False)
+        pp = CurrentPreprocessor(cfg, sample_rate=self.fs)
+        frames = []
+        for i in range(0, len(self.sig), 64):
+            frames += pp.process_streaming(self.sig[i:i + 64])
+        recon = np.vstack([f[:cfg.stride] for f in frames])[:, 0]
+        seg = recon[-int(2.0 * self.fs):]
+        ref = self.sig[-int(2.0 * self.fs):]
+        self.assertGreater(self._fund_gain(seg, ref), 0.95)
+
+    def test_streaming_matches_ideal_filtering(self):
+        """流式重建 ≈ 整段因果滤波（r > 0.999）：状态延续无帧边界瞬态"""
+        from scipy import signal as sgl
+        cfg = PreprocessConfig(sample_rate=self.fs, channels=1, norm_enabled=False)
+        pp = CurrentPreprocessor(cfg, sample_rate=self.fs)
+        frames = []
+        for i in range(0, len(self.sig), 64):
+            frames += pp.process_streaming(self.sig[i:i + 64])
+        recon = np.vstack([f[:cfg.stride] for f in frames])[:, 0]
+
+        sos_high = sgl.butter(1, cfg.dc_cutoff_hz / (0.5 * self.fs), btype="high", output="sos")
+        sos_bp = sgl.butter(
+            cfg.filter_order,
+            [cfg.filter_lowcut / (0.5 * self.fs), cfg.filter_highcut / (0.5 * self.fs)],
+            btype="band", output="sos",
+        )
+        ideal = sgl.sosfilt(sos_bp, sgl.sosfilt(sos_high, self.sig))
+        m = min(len(recon), len(ideal))
+        tail = np.arange(m - int(self.fs), m)
+        r = np.corrcoef(recon[tail], ideal[tail])[0, 1]
+        self.assertGreater(r, 0.999)
+
+    def test_slow_baseline_streaming_state_continuity(self):
+        """SlowBaselineRemover 状态延续：不同喂入粒度输出逐点一致"""
+        def run(chunk):
+            dc = SlowBaselineRemover(cutoff_hz=0.5, fs=self.fs, channels=1)
+            outs = [dc(self.sig[i:i + chunk]) for i in range(0, len(self.sig), chunk)]
+            return np.concatenate(outs)
+        a64 = run(64)
+        a256 = run(256)
+        # 粒度只影响起始瞬态（zi 用首块均值初始化），稳态应一致；
+        # 容忍瞬态残差，但检测结构性错位（未延续状态 → 差异 O(1)）
+        np.testing.assert_allclose(a64[-int(self.fs):], a256[-int(self.fs):], atol=1e-3)
 
 
 class TestNormalization(unittest.TestCase):

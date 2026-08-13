@@ -43,4 +43,29 @@ for i in range(0, len(abc), 64):
     frames += pp3.process_streaming(abc[i:i+64])
 print("送入", len(abc), "点(块64)，出帧数:", len(frames), " 首帧shape:", frames[0].shape if frames else None)
 assert frames and frames[0].shape == (256, 3), "流式出帧形状不符"
+
+print("=== 4) v2.1 慢基线去直流：基波保留验证（修复滑动均值窗砍基波 bug） ===")
+f1 = 50.0
+t4 = np.arange(int(FS * 4)) / FS
+sig4 = 2.5 + 1.0 * np.sin(2 * np.pi * f1 * t4) + 0.01 * np.random.randn(len(t4))
+
+def _gain(sig_out, ref):
+    def rms_at_f(x):
+        n = len(x); k = round(f1 * n / FS)
+        return np.abs(np.fft.rfft(x)[k]) / n * np.sqrt(2)
+    return rms_at_f(sig_out) / max(rms_at_f(ref), 1e-12)
+
+cfg4 = PreprocessConfig(sample_rate=FS, channels=1, norm_enabled=False)
+pp4 = CurrentPreprocessor(cfg4, sample_rate=FS)
+clean4 = pp4.process(sig4)
+g_batch = _gain(clean4[-int(2 * FS):], sig4[-int(2 * FS):])
+print(f"  批处理 process() 基波保留: {g_batch*100:.1f}%")
+pp5 = CurrentPreprocessor(cfg4, sample_rate=FS)
+frames5 = []
+for i in range(0, len(sig4), 64):
+    frames5 += pp5.process_streaming(sig4[i:i + 64])
+recon = np.vstack([f[:cfg4.stride] for f in frames5])[:, 0]
+g_stream = _gain(recon[-int(2 * FS):], sig4[-int(2 * FS):])
+print(f"  流式 process_streaming() 基波保留: {g_stream*100:.1f}%")
+assert g_batch > 0.95 and g_stream > 0.95, "去直流后基波保留不足（慢基线失效？）"
 print("✅ 全部通过")
