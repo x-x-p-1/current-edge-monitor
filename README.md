@@ -116,7 +116,11 @@
 │   ├── watchdog.py              # 毫秒级看门狗特征（RMS/包络/峰值因子/斜率）
 │   ├── trigger.py               # 触发引擎（EWMA 基线 + K·σ 判据 + 去抖/迟滞）
 │   ├── slice_capture.py         # 切片捕获（预+后触发落盘，携带上下文）
-│   └── engine.py                # AcquisitionEngine（feed 驱动主循环）
+│   └── engine.py                # AcquisitionEngine（feed 驱动主循环 + 鲁棒性集成）
+├── 10_鲁棒性/                   # 运行时加固（v2.3 新增，对齐 08 清单）
+│   ├── guards.py                # 数值守卫（NaN/Inf、除零，R1/R2）
+│   ├── input_quality.py         # 输入质量自评（削波/偏置/断线/丢样/缺相/错序）
+│   └── chaos.py                 # 混沌注入器（§4.2 fault injection）
 ├── config/
 │   └── config.yaml              # 全局配置参数（数据契约驱动）
 ├── docs/
@@ -130,7 +134,7 @@
 # 安装 Python 依赖（训练端 PC）
 pip install -r requirements.txt
 
-# 全量测试（当前 84/84 通过）
+# 全量测试（当前 107/107 通过）
 python -m pytest 06_测试与验证/ -q
 
 # M0 端到端仿真 / 实时看板 / 各层自检（工具集中在 07_测试工具）
@@ -149,9 +153,12 @@ python 07_测试工具/export_5kw_live_dashboard.py
 
 # M1 采集层端到端：环形缓冲 + 看门狗 + 触发 + 切片（v2.2）
 python 07_测试工具/verify_acquisition.py
+
+# 鲁棒性混沌注入验证（v2.3）：8 类故障 → 存活/标记/恢复 报告
+python 07_测试工具/verify_robustness.py
 ```
 
-## 测试状态（84/84 全绿）
+## 测试状态（107/107 全绿）
 
 | 模块 | 用例 |
 |------|------|
@@ -161,6 +168,7 @@ python 07_测试工具/verify_acquisition.py
 | 后处理 | 14 |
 | 集成（v2） | 4 |
 | 采集层（M1，v2.2 新增） | 21 |
+| 鲁棒性（v2.3 新增） | 23 |
 
 ## 参考标准与算法清单
 
