@@ -14,8 +14,8 @@
 
 | 批次 | 目标 | 状态 |
 |------|------|------|
-| 中文 | ~10 套 | ✅ **已调研 18 套，达成目标（超额 8 套）**；高价值 **7 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore / edge-demo / EMS-Modbus-Gateway / esp32_icm42607），理念印证 2 套（aiotec / cube-studio） |
-| 英文 | ~10 套 | ⏳ 待开始（edge-demo / MoonSpectrum 可作为英文候选） |
+| 中文 | ~10 套 | ✅ **已调研 22 套，达成目标（超额 12 套）**；高价值 **9 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore / edge-demo / EMS-Modbus-Gateway / esp32_icm42607 / iot-dc3 / iotStudio），理念印证 2 套（aiotec / cube-studio） |
+| 英文 | ~10 套 | 🔄 **已启动，完成 3/10**（StreamPipes / Azure Industrial-IoT / edge-agents）；其余候选：MoonSpectrum、EdgeDI、iot-predictive-maintenance |
 
 ## 汇总
 
@@ -39,6 +39,13 @@
 | 16 | [ExpressGit/EdgeAI-Engine](2026-08-17_edgeai-engine.md) | Python/PyTorch + RKNN | RK3588 视觉训练+量化源码（RKNN 路径） | ★★ 中（M3 备查） |
 | 17 | [David-gby/PTCG-](2026-08-17_ptcg.md) | Python + YOLOv8 | 卡牌质检（手动修正→训练池→再训练闭环） | ★★ 中（数据飞轮） |
 | 18 | [13115827885/PFLD 疲劳驾驶](2026-08-17_pfld-fatigue-driving.md) | Python/PyTorch/TFLite | 疲劳检测（滑窗时序融合降误报+边缘部署管线） | ★★ 中（降误报方法论） |
+| 19 | [apache/streampipes](2026-08-17_streampipes.md) | Java + TS | Apache 工业 IoT 流处理平台（管道元素+变化检测） | ★★★ 高（流处理标准件） |
+| 20 | [pnoker/iot-dc3](2026-08-17_iot-dc3.md) | Java/Spring Cloud | 工业 IoT 平台（28 协议驱动+Driver SDK+AI） | ★★★ 高（驱动+物模型） |
+| 21 | [dgiot/iotStudio](2026-08-17_iotstudio.md) | Python/FastAPI + Vue3 | Python 轻量边缘平台（本体引擎+存储降级） | ★★★ 高（Python 栈边缘） |
+| 22 | [IoTSharp/SonnetDB](2026-08-17_sonnetdb.md) | C#/.NET 嵌入式 | 多模型数据引擎（时序+KV+MQ 一进程） | ★★★ 高（嵌入式时序存储） |
+| 23 | [Azure/Industrial-IoT](2026-08-17_azure-industrial-iot.md) | C# + OPC UA | 微软 OPC Publisher 边缘模块 | ★★ 中（OPC UA 接入） |
+| 24 | [ForestHubAI/edge-agents](2026-08-17_edge-agents.md) | Go + TS | 30MB 边缘 AI agent 运行时 | ★★ 中（contract-first） |
+| 25 | [KuzinHouse/IIoT-Edge-Gateway](2026-08-17_iiot-edge-gateway.md) | TS/Next.js | Neuron 级网关（设备模板含变频器+标签告警） | ★★ 中（遥测+告警配置） |
 
 ## 总体结论（4 条可直接落地）
 
@@ -64,6 +71,20 @@
    逐一核对 01_信号预处理 + 02_特征 的覆盖完整性。
 9. **降误报时序融合** → 借鉴 **PFLD 疲劳驾驶**：滑窗 + 连续帧确认 + 累积率（PERCLOS）三层时序融合、
    绿/黄/红多级告警状态机。对应 TriggerEngine 确认去抖与 03/04 决策设计。
+10. **流处理管道元素 + 变化检测处理器** → 借鉴 **Apache StreamPipes**：一个功能一个可独立部署单元
+    （adapter/processor/sink，可跑在边缘）；现成处理器库（change-detection / statistics / aggregation /
+    pattern-detection）直接对照我们 02/03 模块。
+11. **采集驱动抽象 + 物模型的工业化实现** → 借鉴 **iot-dc3**（28 协议驱动 + Driver SDK 注册模式）与
+    **iotStudio**（Python 栈边缘代理 + Site→Gateway→Device→Point 四层物模型 + MQTT 主题规范 +
+    SQLite 默认/TDengine 可选降级）。对应「按工况打标签」与 P2 特征规范（结论 3 的权威佐证）。
+12. **嵌入式时序存储 + 批量写入** → 借鉴 **SonnetDB**：嵌入式时序 + 内建 MQTT 直连落库、
+    Line Protocol/JSON 批量写入、WAL 崩溃安全分级。对应特征日志/断网续传的存储选型升级方向。
+13. **OPC UA 接入（M3/遥测备查）** → 借鉴 **Azure Industrial-IoT**（OPC Publisher：PubSub 多编码 +
+    发布/控制面分离）；若 VFD 走 OPC UA 则深入读其 OPC Publisher 文档。
+14. **契约单一来源 + 图工作流** → 借鉴 **edge-agents**：OpenAPI schema 单一事实源 + Go/TS 双端生成 +
+    CI 防 drift；图工作流（节点/边/状态机）组织数据管线。
+15. **VFD 遥测模板 + 标签告警三元组** → 借鉴 **IIoT-Edge-Gateway**：设备模板（90+ 含变频器）+ 标签告警
+    配置（阈值/死区/延迟）。对应 TriggerEngine 迟滞/确认参数与 VFD 接入。
 
 ## 不推荐关注
 
