@@ -14,8 +14,10 @@
 
 | 批次 | 目标 | 状态 |
 |------|------|------|
-| 中文 | ~10 套 | ✅ **已调研 22 套，达成目标（超额 12 套）**；高价值 **9 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore / edge-demo / EMS-Modbus-Gateway / esp32_icm42607 / iot-dc3 / iotStudio），理念印证 2 套（aiotec / cube-studio） |
-| 英文 | ~10 套 | 🔄 **已启动，完成 3/10**（StreamPipes / Azure Industrial-IoT / edge-agents）；其余候选：MoonSpectrum、EdgeDI、iot-predictive-maintenance |
+| 中文 | ~10 套 | ✅ **已调研 22 套，达成目标（超额 12 套）**；有效 **18 套**；淘汰 4 套（Edge-Intelligence / Wqiankun / star-edge-cloud / EtherCAT） |
+| 英文 | ~10 套 | 🔄 **已启动，调研 5 套，有效 4/10**（StreamPipes / Azure IIoT / edge-agents / **mcp-server-mcsa**）；rishvanjay/MCSA 已淘汰 |
+
+> **筛选规则**：主表只保留 ★★ 及以上（可直接借鉴）；★ 低 / ✗ 移入『不推荐关注』（编号保留原调研序，空号=已淘汰，不占有效计数）。总调研 **27 套**，有效 **22 套**，淘汰 **5 套**。
 
 ## 汇总
 
@@ -25,13 +27,13 @@
 | 2 | [zhangkaigod2000/BetterIOT](2026-08-17_betteriot.md) | C#/.NET Core | ARM/X86 工业数据采集系统 | ★★★ 高 |
 | 3 | [iweidujiang/java-industrial-smart](2026-08-17_java-industrial-smart.md) | Java/Spring Boot | 工业智能专栏（PLC接入/预判/监控/孪生） | ★★★ 高 |
 | 4 | [dingdaoyi/LotusBridge](2026-08-17_lotusbridge.md) | Rust + axum | 边缘网关（学习项目） | ★★ 中（架构思路） |
-| 5 | [wyc941012/Edge-Intelligence](2026-08-17_edge-intelligence.md) | Python/PyTorch | 端云 CNN 分层推断（学术 demo） | ★ 低（概念） |
-| 6 | [Wqiankun/-](2026-08-17_wqiankun-rl-offloading.md) | Python/gym | RL 计算卸载（学术 toy） | ✗ 不相关 |
+| 5 | ~~Edge-Intelligence~~（已淘汰） | | | |
+| 6 | ~~Wqiankun/-~~（已淘汰） | | | |
 | 7 | [anviod/edgeCore](2026-08-17_edgecore.md) | Go + Vue3 | 工业边缘网关（RK3588 + 稳定性工程） | ★★★ 高（**最高契合**） |
 | 8 | [data-infra/cube-studio](2026-08-17_cube-studio.md) | K8s + Python | 一站式 AI/MLOps 云平台 | ★★ 中（远期 2 点） |
-| 9 | [mythad/star-edge-cloud](2026-08-17_star-edge-cloud.md) | Go | 边缘-云监测平台（早期半成品） | ★ 低（架构思路） |
+| 9 | ~~star-edge-cloud~~（已淘汰） | | | |
 | 10 | [zhangedwin/aiotec](2026-08-17_aiotec.md) | C++ + lighttpd | RTU 采集 + 视觉 AI 融合网关（RK3588） | ★★ 中（理念印证） |
-| 11 | [anviod/EtherCAT](2026-08-17_ethercat.md) | Go | EtherCAT 纯 Go SDK（edgeCore 作者配套） | ★ 低（仅方法论 2 点） |
+| 11 | ~~EtherCAT~~（已淘汰） | | | |
 | 12 | [qianyu-web/edge-demo](2026-08-17_edge-demo.md) | Python + EMQX + Node-RED | 工业边缘计算 Demo（PLC采集+异常检测+断网补传） | ★★★ 高（对标 M1） |
 | 13 | [huxinyu190/EMS-Modbus-Gateway-](2026-08-17_ems-modbus-gateway.md) | Python + MySQL | 储能 Modbus 采集网关（多类型解码+SOH 健康度） | ★★★ 高（遥测参照） |
 | 14 | [Newdawn01/esp32_icm42607](2026-08-17_esp32_icm42607.md) | ESP32-S3 + Rust 网关 | 振动监测边缘节点（EMA 自适应阈值+四层温补） | ★★★ 高（阈值工程） |
@@ -46,6 +48,7 @@
 | 23 | [Azure/Industrial-IoT](2026-08-17_azure-industrial-iot.md) | C# + OPC UA | 微软 OPC Publisher 边缘模块 | ★★ 中（OPC UA 接入） |
 | 24 | [ForestHubAI/edge-agents](2026-08-17_edge-agents.md) | Go + TS | 30MB 边缘 AI agent 运行时 | ★★ 中（contract-first） |
 | 25 | [KuzinHouse/IIoT-Edge-Gateway](2026-08-17_iiot-edge-gateway.md) | TS/Next.js | Neuron 级网关（设备模板含变频器+标签告警） | ★★ 中（遥测+告警配置） |
+| 26 | [LGDiMaggio/mcp-server-mcsa](2026-08-17_mcp-server-mcsa.md) | Python + MCP | MCSA 完整工具链（故障频率公式+严重度分级+包络） | ★★★ 高（MCSA 核心参考） |
 
 ## 总体结论（4 条可直接落地）
 
@@ -85,13 +88,18 @@
     CI 防 drift；图工作流（节点/边/状态机）组织数据管线。
 15. **VFD 遥测模板 + 标签告警三元组** → 借鉴 **IIoT-Edge-Gateway**：设备模板（90+ 含变频器）+ 标签告警
     配置（阈值/死区/延迟）。对应 TriggerEngine 迟滞/确认参数与 VFD 接入。
+16. **MCSA 故障理论 + 严重度分级（核心参考）** → 借鉴 **mcp-server-mcsa**：断条 (1±2s)·fs、偏心 fs±k·fr、
+    定子 fs±2k·fr、轴承 fs±k·f_defect 完整公式；严重度阈值（dB below fundamental：健康 ≤−50 / 初期 −50~−45 /
+    中度 −45~−40 / 严重 >−35，按基线实测调整）；Hilbert 包络解调；数据 ID 引用而非搬运。
+    对应 M2 健康度分级与 03 检测模型的理论/实现双参考。
 
-## 不推荐关注
+## 不推荐关注（已从主表筛选淘汰，保留报告备查）
 
 - **Wqiankun/-**（RL 卸载 toy）：与电流监测无交集，跳过。
 - **Edge-Intelligence**：仅"端云分层推断"概念可提，工程实现粗糙，不借鉴。
 - **star-edge-cloud**：早期半成品，仅"职责拆分 + 数据分类"架构思路（已被 freeioe/BetterIOT 覆盖），不深入学习。
 - **EtherCAT**：工业总线协议 SDK，与电流监测不在一条线；仅"软件模拟从站测测试 + 性能基准量化"两个方法论可记（已纳入总体结论 4 的验证思路）。
+- **[rishvanjay/MCSA](2026-08-17_rishvanjay-mcsa.md)**：MCSA ML 脚本集（研究生实验代码，无文档未维护），方法枚举 + 实验数据备查；工程价值被 mcp-server-mcsa 覆盖。
 
 ## 理念印证（行业共识，不深入学习）
 
