@@ -11,9 +11,17 @@ v0.2 新增：
   - 物理模式：Motor(默认 5kW) 驱动，幅值单位为真实安培(A)
     load_profile 第三项 = 负载转矩(标幺)，堵转/负载突变/三相不平衡按物理量解释
 
+v0.3 新增（MCSA 故障库扩充，参考 mcp-server-mcsa 故障理论）：
+  - bearing 轴承缺陷：电流边带 fs ± k·f_defect（BPFO/BPFI/BSF/FTF 由轴承几何计算）
+  - stator_interturn 定子匝间短路：电流边带 fs ± 2k·fr
+  - eccentricity 气隙偏心：电流边带 fs ± k·fr
+  - phase_loss 缺相：一相电流趋零（联动 10_鲁棒性 R6）
+  边带/几何计算集中在 `mcsa_faults.py`（依赖仅 numpy）
+
 参考：
   - 西门子 LGF 波形发生算法族（Sinus/SawTooth/Rectangle）的边缘管线自检理念
   - 三菱 MCSA 边带模型（转子条故障边带位于 f1 ± 2·s·f1）
+  - mcp-server-mcsa：轴承/定子/偏心 MCSA 边带公式 + 轴承几何特征频率
 
 依赖：仅 numpy
 
@@ -60,6 +68,13 @@ class Fault:
       unbalance      三相不平衡：B 相降 C 相升
       degradation    全程缓变劣化：幅值线性升至 1+depth（慢性故障）
       arc            电弧：零休（平肩）+ 高频随机爆发（强度 depth）
+      bearing        轴承缺陷（MCSA 边带 fs ± k·f_defect）；params: n_balls/ball_d/
+                      pitch_d/contact_angle_deg（轴承几何），ring='outer'|'inner'|'ball'|'cage'
+      stator_interturn 定子匝间短路（MCSA 边带 fs ± 2k·fr）；slip + poles(极数, params)
+      eccentricity   气隙偏心（MCSA 边带 fs ± k·fr）；slip + poles(极数, params)
+      phase_loss     缺相：phase(params, 0/1/2) 相电流趋零（联动鲁棒性 R6）
+
+    MCSA 边带/轴承几何计算见 `mcsa_faults.py`（参考 mcp-server-mcsa 故障理论）。
     """
     kind: str = "stall"
     start: float = 0.0          # 起始时间 (s)
@@ -226,6 +241,38 @@ def _apply_fault(
                         f.depth * amplitude * np.sin(2 * np.pi * fb * t[seg] + ch)
                     )
 
+    elif f.kind in ("bearing", "stator_interturn", "eccentricity", "phase_loss"):
+        _mcsa = _import_mcsa_faults()
+        poles = int(f.params.get("poles", 4))
+        t_seg = t[seg]
+        if f.kind == "bearing":
+            fr = _mcsa.rotor_mech_freq_hz(f1, f.slip, poles)
+            geom = _mcsa.bearing_frequencies(
+                fr_rot_hz=fr,
+                n_balls=int(f.params.get("n_balls", 8)),
+                ball_d=float(f.params.get("ball_d", 0.006)),
+                pitch_d=float(f.params.get("pitch_d", 0.028)),
+                contact_angle_deg=float(f.params.get("contact_angle_deg", 0.0)),
+            )
+            _mcsa.inject_bearing(
+                signal, seg, t_seg, f1, f.slip, poles,
+                f.depth, amplitude, geom,
+                ring=str(f.params.get("ring", "outer")), k_order=f.k,
+            )
+        elif f.kind == "stator_interturn":
+            _mcsa.inject_stator_interturn(
+                signal, seg, t_seg, f1, f.slip, poles, f.k, f.depth, amplitude,
+            )
+        elif f.kind == "eccentricity":
+            _mcsa.inject_eccentricity(
+                signal, seg, t_seg, f1, f.slip, poles, f.k, f.depth, amplitude,
+            )
+        else:  # phase_loss
+            _mcsa.inject_phase_loss(
+                signal, seg, f.depth,
+                phase=int(f.params.get("phase", 0)), residual=float(f.params.get("residual", 0.05)),
+            )
+
     elif f.kind == "spike":
         density = f.params.get("density", 0.001)
         nsp = max(1, int((f.dur * fs) * density))
@@ -265,6 +312,15 @@ def _apply_fault(
 # ============================================================
 # 主生成接口
 # ============================================================
+
+def _import_mcsa_faults():
+    """延迟导入 mcsa_faults（兼容 importlib 包导入与直接运行两种方式）。"""
+    try:
+        from . import mcsa_faults
+    except ImportError:
+        import mcsa_faults
+    return mcsa_faults
+
 
 def generate_dataset(
     fs: float = 16000.0,

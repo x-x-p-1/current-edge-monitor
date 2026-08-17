@@ -17,6 +17,9 @@
 - [x] **鲁棒性加固（10_鲁棒性，23 用例）**：数值守卫(R1/R2) / 输入质量自评
       (R3 削波·R4 偏置断线·R5 丢样·R6 缺相错序) / engine 单帧隔离(R10) + 质量日志有界(R7) /
       混沌注入全 8 类(§4.2) 进程存活 100%
+- [x] **仿真器 MCSA 故障库扩充（00 模块 v0.3）**：新增轴承 / 定子匝间短路 / 偏心 / 缺相 4 类
+      MCSA 边带故障（参考 mcp-server-mcsa 故障理论：fs±k·f_defect / fs±2k·fr / fs±k·fr）；
+      新增 `mcsa_faults.py` + `07_测试工具/verify_mcsa_faults.py`（自检 6 项全过，回归 107/107）
 - [ ] **硬件/数据线 = 当前瓶颈（关键路径）**
 - [ ] 仿真器改造（00 模块）：需求评审稿已出，等电气工程师确认 → `00_数据生成与仿真/仿真器改造问题清单.md`
 
@@ -38,7 +41,9 @@
         详见 `01_信号预处理/README.md` §v2.1 变更与 `06_测试与验证/test_preprocess.py` TestDCBaselineV21
 - [ ] 电气工程师评审问题清单（汇总决策表 §7）
 - [ ] 数据契约对齐：8 参数契约完整落地 metadata + 契约 JSON（P0）
-- [ ] 故障库扩充：缺相 / 轴承 / 定子匝间短路（P0，联动鲁棒性 R6）
+- [x] 故障库扩充：轴承 / 定子匝间短路 / 偏心 / 缺相（MCSA 边带，参考 mcp-server-mcsa；
+      新增 `mcsa_faults.py` + `verify_mcsa_faults.py` 自检 6 项全过，回归 107/107；联动鲁棒性 R6）
+      （缺相→R6；轴承/定子/偏心→M2 慢路径 MCSA 检测器用）
 - [ ] 场景化构建器：Scenario DSL + ground-truth 事件表（P0）
 - [ ] 真实 VFD 波形：频率斜坡 / SVPWM / 死区 / 启动涌流（P1）
 - [ ] 流式/连续生成：CurrentStreamSimulator + soak 循环（P1）
