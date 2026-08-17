@@ -14,7 +14,7 @@
 
 | 批次 | 目标 | 状态 |
 |------|------|------|
-| 中文 | ~10 套 | ✅ 已调研 9 套；高价值筛出 **4 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore），再补 ~1 套达成 |
+| 中文 | ~10 套 | ✅ **已调研 11 套，达成目标（超额 1 套）**；高价值筛出 **4 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore），理念印证 2 套（aiotec / cube-studio） |
 | 英文 | ~10 套 | ⏳ 待开始 |
 
 ## 汇总
@@ -30,6 +30,8 @@
 | 7 | [anviod/edgeCore](2026-08-17_edgecore.md) | Go + Vue3 | 工业边缘网关（RK3588 + 稳定性工程） | ★★★ 高（**最高契合**） |
 | 8 | [data-infra/cube-studio](2026-08-17_cube-studio.md) | K8s + Python | 一站式 AI/MLOps 云平台 | ★★ 中（远期 2 点） |
 | 9 | [mythad/star-edge-cloud](2026-08-17_star-edge-cloud.md) | Go | 边缘-云监测平台（早期半成品） | ★ 低（架构思路） |
+| 10 | [zhangedwin/aiotec](2026-08-17_aiotec.md) | C++ + lighttpd | RTU 采集 + 视觉 AI 融合网关（RK3588） | ★★ 中（理念印证） |
+| 11 | [anviod/EtherCAT](2026-08-17_ethercat.md) | Go | EtherCAT 纯 Go SDK（edgeCore 作者配套） | ★ 低（仅方法论 2 点） |
 
 ## 总体结论（4 条可直接落地）
 
@@ -50,6 +52,12 @@
 - **Wqiankun/-**（RL 卸载 toy）：与电流监测无交集，跳过。
 - **Edge-Intelligence**：仅"端云分层推断"概念可提，工程实现粗糙，不借鉴。
 - **star-edge-cloud**：早期半成品，仅"职责拆分 + 数据分类"架构思路（已被 freeioe/BetterIOT 覆盖），不深入学习。
+- **EtherCAT**：工业总线协议 SDK，与电流监测不在一条线；仅"软件模拟从站测测试 + 性能基准量化"两个方法论可记（已纳入总体结论 4 的验证思路）。
+
+## 理念印证（行业共识，不深入学习）
+
+- **aiotec**：RTU + 视觉 AI 融合网关。未引入新技术点，但第三次印证三个行业共识：断网续传、多协议统一接入、**误报反馈闭环（数据飞轮理念的现成落地形态）**。
+- **cube-studio**：云侧 MLOps 平台，与本项目不同层（详见远期备查）。
 
 ## 远期备查（非当前）
 
