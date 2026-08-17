@@ -14,8 +14,8 @@
 
 | 批次 | 目标 | 状态 |
 |------|------|------|
-| 中文 | ~10 套 | ✅ **已调研 11 套，达成目标（超额 1 套）**；高价值筛出 **4 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore），理念印证 2 套（aiotec / cube-studio） |
-| 英文 | ~10 套 | ⏳ 待开始 |
+| 中文 | ~10 套 | ✅ **已调研 18 套，达成目标（超额 8 套）**；高价值 **7 套**（freeioe / BetterIOT / java-industrial-smart / edgeCore / edge-demo / EMS-Modbus-Gateway / esp32_icm42607），理念印证 2 套（aiotec / cube-studio） |
+| 英文 | ~10 套 | ⏳ 待开始（edge-demo / MoonSpectrum 可作为英文候选） |
 
 ## 汇总
 
@@ -32,6 +32,13 @@
 | 9 | [mythad/star-edge-cloud](2026-08-17_star-edge-cloud.md) | Go | 边缘-云监测平台（早期半成品） | ★ 低（架构思路） |
 | 10 | [zhangedwin/aiotec](2026-08-17_aiotec.md) | C++ + lighttpd | RTU 采集 + 视觉 AI 融合网关（RK3588） | ★★ 中（理念印证） |
 | 11 | [anviod/EtherCAT](2026-08-17_ethercat.md) | Go | EtherCAT 纯 Go SDK（edgeCore 作者配套） | ★ 低（仅方法论 2 点） |
+| 12 | [qianyu-web/edge-demo](2026-08-17_edge-demo.md) | Python + EMQX + Node-RED | 工业边缘计算 Demo（PLC采集+异常检测+断网补传） | ★★★ 高（对标 M1） |
+| 13 | [huxinyu190/EMS-Modbus-Gateway-](2026-08-17_ems-modbus-gateway.md) | Python + MySQL | 储能 Modbus 采集网关（多类型解码+SOH 健康度） | ★★★ 高（遥测参照） |
+| 14 | [Newdawn01/esp32_icm42607](2026-08-17_esp32_icm42607.md) | ESP32-S3 + Rust 网关 | 振动监测边缘节点（EMA 自适应阈值+四层温补） | ★★★ 高（阈值工程） |
+| 15 | [chgttyyr/MoonSpectrum](2026-08-17_moonspectrum.md) | MoonBit | 科学信号处理库（FFT/窗/滤波/PSD/STFT） | ★★★ 高（算法清单核对） |
+| 16 | [ExpressGit/EdgeAI-Engine](2026-08-17_edgeai-engine.md) | Python/PyTorch + RKNN | RK3588 视觉训练+量化源码（RKNN 路径） | ★★ 中（M3 备查） |
+| 17 | [David-gby/PTCG-](2026-08-17_ptcg.md) | Python + YOLOv8 | 卡牌质检（手动修正→训练池→再训练闭环） | ★★ 中（数据飞轮） |
+| 18 | [13115827885/PFLD 疲劳驾驶](2026-08-17_pfld-fatigue-driving.md) | Python/PyTorch/TFLite | 疲劳检测（滑窗时序融合降误报+边缘部署管线） | ★★ 中（降误报方法论） |
 
 ## 总体结论（4 条可直接落地）
 
@@ -46,6 +53,17 @@
    ShadowCore 内存影子 SoT（特征/状态统一内存层）、ScanEngine 快慢路径调度器、
    DataPipeline 扇出 + 限速背压、熔断/失败降级 + Soak 指标门禁。
    对应 M1 收尾与鲁棒性 R10/R11/R13 及验收门禁。
+5. **异常判定 + 断网补传最小可对照实现** → 借鉴 **edge-demo**：滑动窗口统计 + 阈值/3σ 双重判定、
+   SQLite 本地缓存 + 断网按序补传（零丢失）+ 7 天 TTL、遥测通道配置。对标 M1 工程实现。
+6. **VFD/PLC 遥测接入 + 健康度** → 借鉴 **EMS-Modbus-Gateway-**：多类型寄存器解码表（U16/S16/U32/S32/FLOAT32/BOOL）、
+   点位地址映射、SOH 健康状态计算、1/10 分钟分级入库、离线包搬运。
+7. **自适应阈值 + 温漂补偿** → 借鉴 **esp32_icm42607**：EMA 基线追踪 + 温度感知自适应阈值、
+   四层温度漂移补偿（上电校准→在线学习→温补→基线感知）、3σ 剔除、报警延迟确认。
+   对应 TriggerEngine 基线策略与鲁棒性温漂处理。
+8. **算法能力清单交叉核对** → 借鉴 **MoonSpectrum** 的纯算法层模块划分（FFT/STFT/PSD/IIR/FIR/窗/卷积/相关/重采样/峰值检测），
+   逐一核对 01_信号预处理 + 02_特征 的覆盖完整性。
+9. **降误报时序融合** → 借鉴 **PFLD 疲劳驾驶**：滑窗 + 连续帧确认 + 累积率（PERCLOS）三层时序融合、
+   绿/黄/红多级告警状态机。对应 TriggerEngine 确认去抖与 03/04 决策设计。
 
 ## 不推荐关注
 
